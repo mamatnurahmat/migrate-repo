@@ -1,60 +1,80 @@
 #!/bin/bash
 
-# --- Validasi Argumen ---
-if [ -z "$1" ]; then
-    echo "Error: Nama repositori harus diberikan sebagai argumen pertama."
-    echo "Penggunaan: $0 <nama-repositori>"
-    exit 1
-fi
-
-REPO_NAME="$1"
+# Skrip untuk membuat repositori GitHub sebagai private,
+# atau mengubah repositori publik yang ada menjadi private.
 
 # --- Konfigurasi ---
-GITHUB_ORG="Qoin-Digital-Indonesia"
+# Ganti dengan nama organisasi Anda jika perlu.
+# Jika Anda ingin membuatnya di akun pribadi, biarkan kosong.
+GITHUB_ORG=""
 
-# --- Fungsi ---
+# File yang berisi daftar nama repositori, satu per baris.
+REPO_FILE="repos.txt"
+
+# --- Validasi ---
 function check_command() {
     if ! command -v "$1" &> /dev/null; then
         echo "Error: '$1' tidak ditemukan. Harap instal '$1' dan coba lagi."
-        echo "Untuk GitHub CLI, instalasi bisa dilihat di: https://github.com/cli/cli#installation"
+        echo "Untuk GitHub CLI, instalasi bisa dilihat di: https://cli.github.com/"
         exit 1
     fi
 }
 
-# --- Persiapan ---
-echo "Memeriksa dependensi..."
 check_command "gh"
 
-# Pastikan sudah login ke GitHub CLI
 if ! gh auth status &> /dev/null; then
-    echo "Anda belum login ke GitHub CLI."
-    echo "Silakan jalankan 'gh auth login' dan coba lagi."
+    echo "Anda belum login ke GitHub CLI. Silakan jalankan 'gh auth login' dan coba lagi."
     exit 1
 fi
 
-echo "---"
-echo "Langkah 1: Membuat repositori '${REPO_NAME}' di GitHub..."
-echo "Organisasi: ${GITHUB_ORG}"
-
-# Buat repositori baru. --public atau --private bisa disesuaikan.
-if ! gh repo create "${GITHUB_ORG}/${REPO_NAME}" --public; then
-    echo "Error: Gagal membuat repositori. Repositori mungkin sudah ada, atau Anda tidak memiliki izin yang memadai."
+if [ ! -f "$REPO_FILE" ]; then
+    echo "Error: File repositori '$REPO_FILE' tidak ditemukan."
     exit 1
 fi
 
-echo "Repositori '${REPO_NAME}' berhasil dibuat!"
-echo "URL: https://github.com/${GITHUB_ORG}/${REPO_NAME}"
+# --- Logika Utama ---
+while IFS= read -r repo_name || [[ -n "$repo_name" ]]; do
+    # Lewati baris kosong
+    if [ -z "$repo_name" ]; then
+        continue
+    fi
 
-echo "---"
-echo "Langkah 2: Menginisialisasi repositori Git lokal dan push..."
+    # Tentukan path lengkap repo (dengan atau tanpa organisasi)
+    if [ -n "$GITHUB_ORG" ]; then
+        full_repo_path="${GITHUB_ORG}/${repo_name}"
+    else
+        full_repo_path="$repo_name"
+    fi
 
-# Anda bisa menambahkan perintah Git di sini,
-# seperti: git init, git add, git commit, dan git remote add origin
-# Contoh:
-# git init
-# git remote add origin https://github.com/${GITHUB_ORG}/${REPO_NAME}.git
-# git add .
-# git commit -m "Initial commit"
-# git push -u origin main
+    echo "----------------------------------------"
+    echo "Memproses repositori: $full_repo_path"
 
-echo "Penciptaan repositori selesai. Anda sekarang bisa memulai pekerjaan di repositori lokal dan melakukan push."
+    # Periksa visibilitas repositori
+    visibility=$(gh repo view "$full_repo_path" --json visibility --jq .visibility 2>/dev/null)
+    exit_code=$?
+
+    if [ $exit_code -ne 0 ]; then
+        # Jika perintah gagal, repositori tidak ada. Buat sebagai private.
+        echo "Repositori '$full_repo_path' tidak ada. Membuat sebagai private..."
+        if gh repo create "$full_repo_path" --private; then
+            echo "Berhasil membuat repositori private '$full_repo_path'."
+        else
+            echo "Gagal membuat repositori '$full_repo_path'."
+        fi
+    else
+        # Repositori sudah ada.
+        if [ "$visibility" = "PUBLIC" ]; then
+            echo "Repositori '$full_repo_path' ada dan bersifat publik. Mengubah ke private..."
+            if gh repo edit "$full_repo_path" --visibility private; then
+                echo "Berhasil mengubah repositori '$full_repo_path' menjadi private."
+            else
+                echo "Gagal mengubah visibilitas repositori '$full_repo_path'."
+            fi
+        elif [ "$visibility" = "PRIVATE" ]; then
+            echo "Repositori '$full_repo_path' sudah private. Tidak ada tindakan."
+        fi
+    fi
+done < "$REPO_FILE"
+
+echo "----------------------------------------"
+echo "Selesai."
