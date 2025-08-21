@@ -15,38 +15,61 @@ Sebelum memulai, pastikan Anda telah menginstal perangkat lunak berikut:
 
 ## Konfigurasi
 
-Untuk menjalankan skrip secara non-interaktif, Anda perlu mengkonfigurasi autentikasi untuk GitHub CLI.
+Untuk menjalankan skrip secara non-interaktif, Anda perlu mengkonfigurasi autentikasi untuk Git dan GitHub CLI.
 
-### 1. Instal GitHub CLI
+### 1. Instalasi GitHub CLI
 
-Jika Anda belum menginstalnya, unduh dan instal dari situs resminya: [https://cli.github.com/](https://cli.github.com/)
+Jika Anda belum menginstalnya, berikut adalah cara instalasi untuk beberapa sistem operasi umum:
 
-### 2. Buat File `.netrc`
-
-Untuk memungkinkan `git` dan `gh` melakukan autentikasi secara otomatis tanpa meminta kredensial setiap saat, Anda dapat membuat file `.netrc` di direktori home Anda.
-
-**Penting:** Metode ini menggunakan **Personal Access Token (PAT)**, bukan kata sandi akun GitHub Anda.
-
-1.  **Buat Personal Access Token (PAT)** di GitHub dengan cakupan (scope) yang diperlukan, seperti `repo` untuk mengakses repositori.
-2.  Buat file bernama `.netrc` di direktori home Anda. Untuk pengguna Windows, path-nya adalah `C:\Users\<NamaPengguna>\.netrc`.
-3.  Tambahkan konten berikut ke dalam file `.netrc`, ganti placeholder dengan informasi Anda:
-
-    ```
-    machine github.com
-    login <NAMA_PENGGUNA_GITHUB_ANDA>
-    password <PERSONAL_ACCESS_TOKEN_ANDA>
+*   **Windows (via Winget atau Chocolatey):**
+    ```sh
+    winget install GitHub.Cli
+    # atau
+    choco install gh
     ```
 
-    **Contoh:**
-    ```
-    machine github.com
-    login octocat
-    password ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890
+*   **macOS (via Homebrew):**
+    ```sh
+    brew install gh
     ```
 
-### 3. Login dengan GitHub CLI (Satu Perintah)
+*   **Linux (Debian, Ubuntu, Raspbian):**
+    ```sh
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+    sudo apt update
+    sudo apt install gh
+    ```
 
-Meskipun `git` akan menggunakan file `.netrc` secara otomatis, untuk memastikan **GitHub CLI (`gh`)** terautentikasi dengan benar, Anda bisa menggunakan perintah berikut. Perintah ini akan menggunakan token yang ada di file `.netrc` jika `gh` dikonfigurasi untuk itu, atau Anda bisa login menggunakan token secara eksplisit.
+Untuk sistem operasi lain, kunjungi halaman instalasi resmi: [https://cli.github.com/](https://cli.github.com/)
+
+### 2. Buat File `.netrc` untuk Multi-Host
+
+Untuk memungkinkan `git` melakukan autentikasi secara otomatis ke berbagai host (misalnya GitHub dan Bitbucket), Anda dapat membuat satu file `.netrc` di direktori home Anda.
+
+-   **Untuk GitHub:** Gunakan **Personal Access Token (PAT)**.
+-   **Untuk Bitbucket:** Gunakan **App Password**.
+
+Buat file bernama `.netrc` di direktori home Anda (`C:\Users\<NamaPengguna>\.netrc` di Windows) dengan konten berikut:
+
+```
+# Kredensial GitHub
+machine github.com
+login <NAMA_PENGGUNA_GITHUB_ANDA>
+password <PERSONAL_ACCESS_TOKEN_GITHUB_ANDA>
+
+# Kredensial Bitbucket
+machine bitbucket.org
+login <NAMA_PENGGUNA_BITBUCKET_ANDA>
+password <PASSWORD_APLIKASI_BITBUCKET_ANDA>
+```
+
+### 3. Verifikasi Autentikasi GitHub CLI
+
+Setelah `.netrc` dikonfigurasi, verifikasi bahwa GitHub CLI dapat terhubung dengan benar.
+
+Jalankan perintah berikut untuk memeriksa status autentikasi Anda:
+
 
 Cara termudah adalah dengan memverifikasi status login Anda. Jika file `.netrc` sudah benar, `gh` akan terautentikasi.
 
