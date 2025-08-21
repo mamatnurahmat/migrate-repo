@@ -1,100 +1,267 @@
-# Skrip Migrasi Repositori Git
+# Repository Migration Tools
 
-Proyek ini berisi sekumpulan skrip shell untuk mengotomatiskan proses migrasi repositori Git dari satu sumber ke GitHub. Proses ini dibagi menjadi dua langkah utama:
+Kumpulan script untuk migrasi dan manajemen repositori dari Bitbucket ke GitHub.
 
-1.  **`1-create.sh`**: Membuat repositori baru di akun GitHub Anda.
-2.  **`2-migrate.sh`**: Mendorong (push) kode dari repositori lokal ke repositori yang baru dibuat di GitHub.
+## 📋 Daftar Script
 
-## Prasyarat
+### 1. `1-create.sh` - Repository Creation
+Script untuk membuat repositori private di GitHub atau mengubah repositori publik menjadi private.
 
-Sebelum memulai, pastikan Anda telah menginstal perangkat lunak berikut:
+### 2. `2-migrate.sh` - Repository Migration  
+Script untuk migrasi repositori dari Bitbucket ke GitHub dengan bulk processing.
 
-*   **Git**: Diperlukan untuk semua operasi Git.
-*   **GitHub CLI (`gh`)**: Digunakan untuk berinteraksi dengan GitHub API dari baris perintah.
-*   **Shell (seperti Git Bash di Windows)**: Diperlukan untuk menjalankan skrip `.sh`.
+### 3. `3-check.sh` - Repository Validation
+Script untuk validasi keberadaan branch/tag di repositori dengan logging.
 
-## Konfigurasi
+## 🚀 Penggunaan
 
-Untuk menjalankan skrip secara non-interaktif, Anda perlu mengkonfigurasi autentikasi untuk Git dan GitHub CLI.
+### Prerequisites
 
-### 1. Instalasi GitHub CLI
+1. **GitHub CLI** - Akan diinstal otomatis jika belum ada
+2. **Git** - Untuk operasi repository
+3. **File `repos.txt`** - Berisi daftar nama repositori (satu per baris)
 
-Jika Anda belum menginstalnya, berikut adalah cara instalasi untuk beberapa sistem operasi umum:
+### Setup Authentication
 
-*   **Windows (via Winget atau Chocolatey):**
-    ```sh
-    winget install GitHub.Cli
-    # atau
-    choco install gh
-    ```
-
-*   **macOS (via Homebrew):**
-    ```sh
-    brew install gh
-    ```
-
-*   **Linux (Debian, Ubuntu, Raspbian):**
-    ```sh
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-    sudo apt update
-    sudo apt install gh
-    ```
-
-Untuk sistem operasi lain, kunjungi halaman instalasi resmi: [https://cli.github.com/](https://cli.github.com/)
-
-### 2. Buat File `.netrc` untuk Multi-Host
-
-Untuk memungkinkan `git` melakukan autentikasi secara otomatis ke berbagai host (misalnya GitHub dan Bitbucket), Anda dapat membuat satu file `.netrc` di direktori home Anda.
-
--   **Untuk GitHub:** Gunakan **Personal Access Token (PAT)**.
--   **Untuk Bitbucket:** Gunakan **App Password**.
-
-Buat file bernama `.netrc` di direktori home Anda (`C:\Users\<NamaPengguna>\.netrc` di Windows) dengan konten berikut:
-
+#### GitHub CLI Login
+```bash
+gh auth login
 ```
-# Kredensial GitHub
+
+#### Atau gunakan .netrc file
+```bash
+# ~/.netrc
 machine github.com
-login <NAMA_PENGGUNA_GITHUB_ANDA>
-password <PERSONAL_ACCESS_TOKEN_GITHUB_ANDA>
+login your-username
+password your-token
 
-# Kredensial Bitbucket
 machine bitbucket.org
-login <NAMA_PENGGUNA_BITBUCKET_ANDA>
-password <PASSWORD_APLIKASI_BITBUCKET_ANDA>
+login your-username
+password your-app-password
 ```
 
-### 3. Verifikasi Autentikasi GitHub CLI
-
-Setelah `.netrc` dikonfigurasi, verifikasi bahwa GitHub CLI dapat terhubung dengan benar.
-
-Jalankan perintah berikut untuk memeriksa status autentikasi Anda:
-
-
-Cara termudah adalah dengan memverifikasi status login Anda. Jika file `.netrc` sudah benar, `gh` akan terautentikasi.
-
-Jalankan perintah berikut untuk memeriksa status autentikasi Anda:
-
-```sh
-gh auth status
+### File repos.txt
+Buat file `repos.txt` dengan daftar nama repositori:
+```
+my-app
+backend-api
+frontend-ui
+# database-service (commented out)
 ```
 
-Jika Anda melihat output yang menunjukkan bahwa Anda login ke `github.com` dengan protokol HTTPS, maka konfigurasi Anda sudah berhasil. `gh` akan menggunakan kredensial dari `.netrc` untuk operasi selanjutnya.
+## 📖 Detail Script
 
-## Cara Penggunaan
+### 1. `1-create.sh` - Repository Creation
 
-1.  **Siapkan Daftar Repositori**: Buat file `repos.txt` di direktori ini dan isi dengan nama-nama repositori yang ingin Anda buat (satu nama per baris).
+**Fitur:**
+- ✅ Membuat repositori private baru
+- ✅ Mengubah repositori publik menjadi private
+- ✅ Auto-install GitHub CLI
+- ✅ Auto-authentication dengan .netrc
+- ✅ Bulk processing dari file repos.txt
+- ✅ Support CentOS/RHEL/Debian/Ubuntu
 
-2.  **Jalankan Skrip Pembuatan Repositori**:
-    Buka Git Bash atau terminal sejenis, lalu jalankan:
-    ```sh
-    bash 1-create.sh
-    ```
-    Skrip ini akan membaca `repos.txt` dan membuat setiap repositori di akun GitHub Anda.
+**Penggunaan:**
+```bash
+chmod +x 1-create.sh
+./1-create.sh
+```
 
-3.  **Jalankan Skrip Migrasi**:
-    Setelah repositori berhasil dibuat, jalankan skrip migrasi:
-    ```sh
-    bash 2-migrate.sh
-    ```
-    Skrip ini akan melakukan migrasi konten dari repositori lokal Anda ke repositori yang sesuai di GitHub.
+**Output:**
+```
+Memulai proses dengan organisasi: Qoin-Digital-Indonesia
+File repositori: repos.txt
+
+----------------------------------------
+Memproses repositori: Qoin-Digital-Indonesia/my-app
+✅ Berhasil membuat repositori private 'Qoin-Digital-Indonesia/my-app'
+```
+
+### 2. `2-migrate.sh` - Repository Migration
+
+**Fitur:**
+- ✅ Migrasi dari Bitbucket ke GitHub
+- ✅ Bulk processing dari file repos.txt
+- ✅ Auto-install GitHub CLI
+- ✅ Auto-authentication dengan .netrc
+- ✅ Membuat repositori private di GitHub
+- ✅ Migrasi semua branch dan tag
+- ✅ Summary report dengan statistik
+
+**Penggunaan:**
+```bash
+chmod +x 2-migrate.sh
+./2-migrate.sh
+```
+
+**Output:**
+```
+Memulai proses migrasi dengan organisasi: Qoin-Digital-Indonesia
+File repositori: repos.txt
+
+----------------------------------------
+Memigrasi repositori: my-app
+Dari: https://bitbucket.org/loyaltoid/my-app
+Ke: https://github.com/Qoin-Digital-Indonesia/my-app
+✅ Migrasi 'my-app' berhasil!
+
+========================================
+RINGKASAN MIGRASI
+========================================
+Total repositori diproses: 3
+Berhasil: 2
+Gagal: 1
+```
+
+### 3. `3-check.sh` - Repository Validation
+
+**Fitur:**
+- ✅ Validasi branch/tag di GitHub (default)
+- ✅ Validasi branch/tag di Bitbucket
+- ✅ Validasi di kedua platform
+- ✅ Auto-install GitHub CLI
+- ✅ Auto-authentication dengan .netrc
+- ✅ Logging ke file check.logs
+- ✅ Detailed reporting
+
+**Penggunaan:**
+
+**Default (GitHub only):**
+```bash
+chmod +x 3-check.sh
+./3-check.sh develop
+```
+
+**Bitbucket only:**
+```bash
+./3-check.sh main bitbucket
+```
+
+**Both platforms:**
+```bash
+./3-check.sh v1.0.0 both
+```
+
+**Output:**
+```
+Memulai validasi repositori...
+Ref yang dicari: develop
+Source: github
+File repositori: repos.txt
+Log file: check.logs
+
+----------------------------------------
+Validating repository: my-app
+Looking for ref: develop
+Source: github
+  Checking GitHub: https://github.com/Qoin-Digital-Indonesia/my-app
+    ✅ Branch 'develop' exists
+
+  Summary for my-app:
+    ✅ GitHub has 'develop'
+
+========================================
+RINGKASAN VALIDASI
+========================================
+Ref yang divalidasi: develop
+Source: github
+Total repositori diproses: 3
+✅ GitHub memiliki ref: 2
+❌ GitHub tidak memiliki ref: 1
+
+📝 Log file tersimpan di: check.logs
+```
+
+## 📝 Log Files
+
+### check.logs
+File log untuk script `3-check.sh` yang berisi:
+```
+# Check Logs - 2024-01-15 10:30:45
+# Ref: develop, Source: github
+# Format: [timestamp] TYPE: repo_name - description
+
+[2024-01-15 10:30:45] GITHUB_MISSING: frontend-ui - ref 'develop' not found
+[2024-01-15 10:30:46] PARTIAL_MISSING: backend-api - ref 'develop' only exists on Bitbucket
+```
+
+## 🔧 Konfigurasi
+
+### Organisasi Default
+- **GitHub**: `Qoin-Digital-Indonesia`
+- **Bitbucket**: `loyaltoid`
+
+### File Konfigurasi
+- `repos.txt` - Daftar repositori
+- `check.logs` - Log hasil validasi
+
+## 🛠️ Troubleshooting
+
+### GitHub CLI tidak terinstal
+Script akan otomatis menginstal GitHub CLI untuk:
+- CentOS/RHEL: `sudo dnf install -y gh` atau `sudo yum install -y gh`
+- Debian/Ubuntu: `sudo apt install -y gh`
+
+### Authentication Error
+```bash
+# Login manual ke GitHub CLI
+gh auth login
+
+# Atau gunakan token
+echo "your-token" | gh auth login --with-token
+```
+
+### Repository tidak ditemukan
+- Pastikan nama repositori benar di `repos.txt`
+- Pastikan memiliki akses ke organisasi
+- Pastikan kredensial .netrc benar
+
+## 📊 Workflow Lengkap
+
+### 1. Persiapan
+```bash
+# Buat file repos.txt
+echo "my-app" > repos.txt
+echo "backend-api" >> repos.txt
+echo "frontend-ui" >> repos.txt
+
+# Setup authentication
+gh auth login
+```
+
+### 2. Validasi Sebelum Migrasi
+```bash
+# Cek branch develop di Bitbucket
+./3-check.sh develop bitbucket
+
+# Cek branch develop di GitHub
+./3-check.sh develop github
+```
+
+### 3. Buat Repositori di GitHub
+```bash
+./1-create.sh
+```
+
+### 4. Migrasi Konten
+```bash
+./2-migrate.sh
+```
+
+### 5. Validasi Setelah Migrasi
+```bash
+# Cek di kedua platform
+./3-check.sh develop both
+```
+
+## 🎯 Use Cases
+
+- **Pre-migration validation** - Cek status repositori sebelum migrasi
+- **Bulk repository creation** - Buat banyak repositori sekaligus
+- **Post-migration verification** - Pastikan migrasi berhasil
+- **Release management** - Validasi tag release di kedua platform
+- **Branch strategy** - Cek konsistensi branch di kedua sistem
+
+## 📄 License
+
+Script ini dibuat untuk internal use di Qoin Digital Indonesia.
