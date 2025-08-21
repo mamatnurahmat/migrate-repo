@@ -4,9 +4,8 @@
 # atau mengubah repositori publik yang ada menjadi private.
 
 # --- Konfigurasi ---
-# Ganti dengan nama organisasi Anda jika perlu.
-# Jika Anda ingin membuatnya di akun pribadi, biarkan kosong.
-GITHUB_ORG=""
+# Skrip ini dikonfigurasi untuk bekerja HANYA dengan organisasi Qoin-Digital-Indonesia.
+GITHUB_ORG="Qoin-Digital-Indonesia"
 
 # File yang berisi daftar nama repositori, satu per baris.
 REPO_FILE="repos.txt"
