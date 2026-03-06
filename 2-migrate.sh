@@ -8,11 +8,68 @@ GITHUB_ORG="Qoin-Digital-Indonesia"
 REPO_FILE="repos.txt"
 
 # --- Fungsi ---
+function detect_os() {
+    if [ -f /etc/redhat-release ]; then
+        echo "centos"
+    elif [ -f /etc/debian_version ]; then
+        echo "debian"
+    elif [ -f /etc/arch-release ] || grep -q "arch" /etc/os-release || grep -q "cachyos" /etc/os-release; then
+        echo "arch"
+    else
+        echo "unknown"
+    fi
+}
+
+function install_gh_cli() {
+    local os_type=$(detect_os)
+    
+    echo "GitHub CLI tidak ditemukan. Mencoba menginstal..."
+    
+    case $os_type in
+        "centos")
+            echo "Mendeteksi sistem CentOS/RHEL..."
+            if command -v dnf &> /dev/null; then
+                sudo dnf install -y gh
+            elif command -v yum &> /dev/null; then
+                sudo yum install -y https://cli.github.com/packages/rpm/gh-cli.repo
+                sudo yum install -y gh
+            else
+                echo "Error: Tidak dapat menemukan package manager yang didukung."
+                exit 1
+            fi
+            ;;
+        "debian")
+            echo "Mendeteksi sistem Debian/Ubuntu..."
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install -y gh
+            ;;
+        "arch")
+            echo "Mendeteksi sistem Arch-based (CachyOS)..."
+            if command -v pacman &> /dev/null; then
+                sudo pacman -Sy --noconfirm github-cli
+            else
+                echo "Error: Tidak dapat menemukan package manager pacman."
+                exit 1
+            fi
+            ;;
+        *)
+            echo "Error: Sistem operasi tidak didukung untuk instalasi otomatis."
+            echo "Silakan instal GitHub CLI secara manual."
+            exit 1
+            ;;
+    esac
+}
+
 function check_command() {
     if ! command -v "$1" &> /dev/null; then
-        echo "Error: '$1' tidak ditemukan. Harap instal '$1' dan coba lagi."
-        echo "Untuk GitHub CLI, instalasi bisa dilihat di: https://github.com/cli/cli#installation"
-        exit 1
+        if [ "$1" = "gh" ]; then
+            install_gh_cli
+        else
+            echo "Error: '$1' tidak ditemukan. Harap instal '$1' dan coba lagi."
+            exit 1
+        fi
     fi
 }
 

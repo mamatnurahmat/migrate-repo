@@ -16,7 +16,7 @@ function detect_os() {
         echo "centos"
     elif [ -f /etc/debian_version ]; then
         echo "debian"
-    elif [ -f /etc/arch-release ]; then
+    elif [ -f /etc/arch-release ] || grep -q "arch" /etc/os-release || grep -q "cachyos" /etc/os-release; then
         echo "arch"
     else
         echo "unknown"
@@ -41,9 +41,7 @@ function install_gh_cli() {
                 sudo yum install -y gh
             else
                 echo "Error: Tidak dapat menemukan package manager (dnf/yum) yang didukung."
-                echo "Silakan instal GitHub CLI secara manual:"
-                echo "1. Kunjungi: https://cli.github.com/"
-                echo "2. Ikuti instruksi untuk CentOS/RHEL"
+                echo "Silakan instal GitHub CLI secara manual."
                 exit 1
             fi
             ;;
@@ -57,6 +55,16 @@ function install_gh_cli() {
                 sudo apt install -y gh
             else
                 echo "Error: Tidak dapat menemukan package manager apt."
+                exit 1
+            fi
+            ;;
+        "arch")
+            echo "Mendeteksi sistem Arch-based (CachyOS)..."
+            if command -v pacman &> /dev/null; then
+                echo "Menggunakan pacman untuk menginstal GitHub CLI..."
+                sudo pacman -Sy --noconfirm github-cli
+            else
+                echo "Error: Tidak dapat menemukan package manager pacman."
                 exit 1
             fi
             ;;
