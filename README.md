@@ -4,11 +4,14 @@ Kumpulan script untuk migrasi dan manajemen repositori dari Bitbucket ke GitHub.
 
 ## 📋 Daftar Script
 
+### 0. `0-get-repos.sh` - Fetch Repositories
+Script untuk mengambil daftar nama repositori dari Bitbucket berdasarkan **Project ID**.
+
 ### 1. `1-create.sh` - Repository Creation
 Script untuk membuat repositori private di GitHub atau mengubah repositori publik menjadi private.
 
 ### 2. `2-migrate.sh` - Repository Migration  
-Script untuk migrasi repositori dari Bitbucket ke GitHub dengan bulk processing.
+Script untuk migrasi repositori (mirror push) dari Bitbucket ke GitHub secara massal.
 
 ### 3. `3-check.sh` - Repository Validation
 Script untuk validasi keberadaan branch/tag di repositori dengan logging.
@@ -17,251 +20,109 @@ Script untuk validasi keberadaan branch/tag di repositori dengan logging.
 
 ### Prerequisites
 
-1. **GitHub CLI** - Akan diinstal otomatis jika belum ada
-2. **Git** - Untuk operasi repository
-3. **File `repos.txt`** - Berisi daftar nama repositori (satu per baris)
+1. **GitHub CLI** - Akan diinstal otomatis jika belum ada (mendukung CentOS, Debian, Arch/CachyOS).
+2. **Git** - Untuk operasi repository.
+3. **jq** - Diperlukan oleh `0-get-repos.sh` untuk parsing API.
+4. **File `.env`** - Untuk konfigurasi variabel lingkungan.
+
+### Setup Konfigurasi (`.env`)
+
+Buat file `.env` di direktori utama:
+```bash
+BITBUCKET_ORG="loyaltoid"
+GITHUB_ORG="mamatnurahmat" # Bisa username personal atau organisasi
+REPO_FILE="repos.txt"
+```
 
 ### Setup Authentication
 
 #### GitHub CLI Login
 ```bash
-gh auth login
+echo 'YOUR_TOKEN' | gh auth login --with-token
 ```
 
-#### Atau gunakan .netrc file
+#### Bitbucket & GitHub (Fallback .netrc)
+Skrip mendukung pengambilan kredensial dari `~/.netrc`:
 ```bash
 # ~/.netrc
 machine github.com
-login your-username
-password your-token
+  login your-username
+  password your-token
 
 machine bitbucket.org
-login your-username
-password your-app-password
-```
-
-### File repos.txt
-Buat file `repos.txt` dengan daftar nama repositori:
-```
-my-app
-backend-api
-frontend-ui
-# database-service (commented out)
+  login your-username
+  password your-app-password
 ```
 
 ## 📖 Detail Script
 
-### 1. `1-create.sh` - Repository Creation
-
-**Fitur:**
-- ✅ Membuat repositori private baru
-- ✅ Mengubah repositori publik menjadi private
-- ✅ Auto-install GitHub CLI
-- ✅ Auto-authentication dengan .netrc
-- ✅ Bulk processing dari file repos.txt
-- ✅ Support CentOS/RHEL/Debian/Ubuntu
+### 0. `0-get-repos.sh` - Fetch Repositories
+Mencari daftar repositori di Bitbucket berdasarkan Project ID.
 
 **Penggunaan:**
 ```bash
-chmod +x 1-create.sh
+chmod +x 0-get-repos.sh
+./0-get-repos.sh NW
+```
+*Hasil akan disimpan otomatis ke `NW.txt`.*
+
+### 1. `1-create.sh` - Repository Creation
+Membuat repositori private di GitHub akun personal atau organisasi.
+
+**Fitur:**
+- ✅ Mendukung akun personal dan organisasi
+- ✅ Auto-install GitHub CLI (CentOS/Ubuntu/Arch/CachyOS)
+- ✅ Membuat repositori private baru secara massal
+
+**Penggunaan:**
+```bash
+# Pastikan REPO_FILE di .env mengarah ke file yang benar
 ./1-create.sh
-```
-
-**Output:**
-```
-Memulai proses dengan organisasi: Qoin-Digital-Indonesia
-File repositori: repos.txt
-
-----------------------------------------
-Memproses repositori: Qoin-Digital-Indonesia/my-app
-✅ Berhasil membuat repositori private 'Qoin-Digital-Indonesia/my-app'
 ```
 
 ### 2. `2-migrate.sh` - Repository Migration
+Melakukan migrasi penuh (mirror) dari Bitbucket ke GitHub.
 
 **Fitur:**
-- ✅ Migrasi dari Bitbucket ke GitHub
-- ✅ Bulk processing dari file repos.txt
-- ✅ Auto-install GitHub CLI
-- ✅ Auto-authentication dengan .netrc
-- ✅ Membuat repositori private di GitHub
 - ✅ Migrasi semua branch dan tag
-- ✅ Summary report dengan statistik
+- ✅ Menggunakan direktori sementara (`/tmp`) yang bersih
+- ✅ Report summary di akhir proses
 
 **Penggunaan:**
 ```bash
-chmod +x 2-migrate.sh
 ./2-migrate.sh
-```
-
-**Output:**
-```
-Memulai proses migrasi dengan organisasi: Qoin-Digital-Indonesia
-File repositori: repos.txt
-
-----------------------------------------
-Memigrasi repositori: my-app
-Dari: https://bitbucket.org/loyaltoid/my-app
-Ke: https://github.com/Qoin-Digital-Indonesia/my-app
-✅ Migrasi 'my-app' berhasil!
-
-========================================
-RINGKASAN MIGRASI
-========================================
-Total repositori diproses: 3
-Berhasil: 2
-Gagal: 1
 ```
 
 ### 3. `3-check.sh` - Repository Validation
-
-**Fitur:**
-- ✅ Validasi branch/tag di GitHub (default)
-- ✅ Validasi branch/tag di Bitbucket
-- ✅ Validasi di kedua platform
-- ✅ Auto-install GitHub CLI
-- ✅ Auto-authentication dengan .netrc
-- ✅ Logging ke file check.logs
-- ✅ Detailed reporting
+Validasi apakah branch/tag tertentu sudah ada di target target.
 
 **Penggunaan:**
-
-**Default (GitHub only):**
 ```bash
-chmod +x 3-check.sh
-./3-check.sh develop
+./3-check.sh develop both # Cek di GitHub dan Bitbucket
 ```
 
-**Bitbucket only:**
-```bash
-./3-check.sh main bitbucket
-```
+## ⚠️ Isu Umum (Troubleshooting)
 
-**Both platforms:**
-```bash
-./3-check.sh v1.0.0 both
-```
+### GitHub File Size Limit (100MB)
+GitHub membatasi ukuran file maksimal 100MB. Jika repositori memiliki file besar (seperti `.tar` atau binary > 100MB) tanpa LFS, proses `push` akan gagal.
+*Solusi: Gunakan [Git LFS](https://git-lfs.github.com/) atau bersihkan file besar dari history git menggunakan tool seperti `bfg`.*
 
-**Output:**
-```
-Memulai validasi repositori...
-Ref yang dicari: develop
-Source: github
-File repositori: repos.txt
-Log file: check.logs
+### Remote Origin Already Exists
+Jika menjalankan `1-create.sh` di folder yang sudah merupakan git repo, skrip mungkin menampilkan error saat mencoba menambahkan remote `origin`. Hal ini bisa diabaikan karena repositori di GitHub tetap berhasil dibuat.
 
-----------------------------------------
-Validating repository: my-app
-Looking for ref: develop
-Source: github
-  Checking GitHub: https://github.com/Qoin-Digital-Indonesia/my-app
-    ✅ Branch 'develop' exists
+## 📊 Workflow Migrasi Lengkap
 
-  Summary for my-app:
-    ✅ GitHub has 'develop'
+1. **Setup Env**: Isi file `.env` dengan target yang benar.
+2. **Get List**: Jalankan `./0-get-repos.sh PROJECT_ID > repos.txt` untuk mendapatkan daftar repo.
+3. **Create Repo**: Jalankan `./1-create.sh` untuk menyiapkan wadah di GitHub.
+4. **Migrate**: Jalankan `./2-migrate.sh` untuk memindahkan data.
+5. **Verify**: Jalankan `./3-check.sh main both` untuk memastikan data sinkron.
 
-========================================
-RINGKASAN VALIDASI
-========================================
-Ref yang divalidasi: develop
-Source: github
-Total repositori diproses: 3
-✅ GitHub memiliki ref: 2
-❌ GitHub tidak memiliki ref: 1
+## 🛠️ Sistem Operasi Didukung
+Skrip ini memiliki fitur *self-setup* untuk instalasi `github-cli` di:
+- **CentOS / RHEL**
+- **Debian / Ubuntu**
+- **Arch Linux / CachyOS**
 
-📝 Log file tersimpan di: check.logs
-```
-
-## 📝 Log Files
-
-### check.logs
-File log untuk script `3-check.sh` yang berisi:
-```
-# Check Logs - 2024-01-15 10:30:45
-# Ref: develop, Source: github
-# Format: [timestamp] TYPE: repo_name - description
-
-[2024-01-15 10:30:45] GITHUB_MISSING: frontend-ui - ref 'develop' not found
-[2024-01-15 10:30:46] PARTIAL_MISSING: backend-api - ref 'develop' only exists on Bitbucket
-```
-
-## 🔧 Konfigurasi
-
-### Organisasi Default
-- **GitHub**: `Qoin-Digital-Indonesia`
-- **Bitbucket**: `loyaltoid`
-
-### File Konfigurasi
-- `repos.txt` - Daftar repositori
-- `check.logs` - Log hasil validasi
-
-## 🛠️ Troubleshooting
-
-### GitHub CLI tidak terinstal
-Script akan otomatis menginstal GitHub CLI untuk:
-- CentOS/RHEL: `sudo dnf install -y gh` atau `sudo yum install -y gh`
-- Debian/Ubuntu: `sudo apt install -y gh`
-
-### Authentication Error
-```bash
-# Login manual ke GitHub CLI
-gh auth login
-
-# Atau gunakan token
-echo "your-token" | gh auth login --with-token
-```
-
-### Repository tidak ditemukan
-- Pastikan nama repositori benar di `repos.txt`
-- Pastikan memiliki akses ke organisasi
-- Pastikan kredensial .netrc benar
-
-## 📊 Workflow Lengkap
-
-### 1. Persiapan
-```bash
-# Buat file repos.txt
-echo "my-app" > repos.txt
-echo "backend-api" >> repos.txt
-echo "frontend-ui" >> repos.txt
-
-# Setup authentication
-gh auth login
-```
-
-### 2. Validasi Sebelum Migrasi
-```bash
-# Cek branch develop di Bitbucket
-./3-check.sh develop bitbucket
-
-# Cek branch develop di GitHub
-./3-check.sh develop github
-```
-
-### 3. Buat Repositori di GitHub
-```bash
-./1-create.sh
-```
-
-### 4. Migrasi Konten
-```bash
-./2-migrate.sh
-```
-
-### 5. Validasi Setelah Migrasi
-```bash
-# Cek di kedua platform
-./3-check.sh develop both
-```
-
-## 🎯 Use Cases
-
-- **Pre-migration validation** - Cek status repositori sebelum migrasi
-- **Bulk repository creation** - Buat banyak repositori sekaligus
-- **Post-migration verification** - Pastikan migrasi berhasil
-- **Release management** - Validasi tag release di kedua platform
-- **Branch strategy** - Cek konsistensi branch di kedua sistem
-
-## 📄 License
-
-Script ini dibuat untuk internal use di Qoin Digital Indonesia.
+---
+📝 *Dibuat untuk mempermudah migrasi repositori skala besar.*

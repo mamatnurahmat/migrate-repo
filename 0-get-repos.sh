@@ -1,9 +1,17 @@
 #!/bin/bash
 
 # Script untuk mendapatkan daftar nama repositori dari Bitbucket
-# berdasarkan Project ID, menggunakan kredensial dari ~/.netrc.
+# berdasarkan Project ID.
 
-BITBUCKET_ORG="loyaltoid"
+# --- Load Environment Variables ---
+ENV_FILE=".env"
+if [ -f "$ENV_FILE" ]; then
+    export $(grep -v '^#' "$ENV_FILE" | xargs)
+else
+    echo "Error: File $ENV_FILE tidak ditemukan."
+    exit 1
+fi
+
 NETRC_FILE="$HOME/.netrc"
 
 # --- Validasi Argumen ---
@@ -17,18 +25,17 @@ fi
 PROJECT_ID="$1"
 OUTPUT_FILE="${PROJECT_ID}.txt"
 
-# --- Ekstrak Kredensial dari .netrc ---
-if [ ! -f "$NETRC_FILE" ]; then
-    echo "Error: File $NETRC_FILE tidak ditemukan."
-    exit 1
+# --- Ekstrak Kredensial ---
+# Cek apakah variabel sudah ada dari .env, jika tidak ambil dari .netrc
+if [ -z "$BITBUCKET_USER" ] || [ -z "$BITBUCKET_PASS" ]; then
+    if [ -f "$NETRC_FILE" ]; then
+        BITBUCKET_USER=$(grep -A 2 "machine bitbucket.org" "$NETRC_FILE" | grep "login" | awk '{print $2}')
+        BITBUCKET_PASS=$(grep -A 2 "machine bitbucket.org" "$NETRC_FILE" | grep "password" | awk '{print $2}')
+    fi
 fi
 
-# Mengambil username dan password untuk bitbucket.org
-BITBUCKET_USER=$(grep -A 2 "machine bitbucket.org" "$NETRC_FILE" | grep "login" | awk '{print $2}')
-BITBUCKET_PASS=$(grep -A 2 "machine bitbucket.org" "$NETRC_FILE" | grep "password" | awk '{print $2}')
-
 if [ -z "$BITBUCKET_USER" ] || [ -z "$BITBUCKET_PASS" ]; then
-    echo "Error: Kredensial bitbucket.org tidak ditemukan di $NETRC_FILE."
+    echo "Error: Kredensial bitbucket.org tidak ditemukan di $ENV_FILE atau $NETRC_FILE."
     exit 1
 fi
 
@@ -40,7 +47,7 @@ echo "----------------------------------------------------------------------"
 > "$OUTPUT_FILE"
 
 # --- Fungsi untuk Fetch Repositori ---
-# Bitbucket API menggunakan pagination, jadi kita perlu loop sampai 'next' kosong.
+# Bitbucket API menggunakan pagination
 NEXT_URL="https://api.bitbucket.org/2.0/repositories/${BITBUCKET_ORG}?q=project.key=\"${PROJECT_ID}\"&pagelen=100"
 
 while [ -n "$NEXT_URL" ] && [ "$NEXT_URL" != "null" ]; do
