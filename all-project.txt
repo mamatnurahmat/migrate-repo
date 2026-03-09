@@ -1,0 +1,49 @@
+| Project Name                 | Key            | Description                    |
+|------------------------------|---------------|--------------------------------|
+| Crypto-Digid                 | CD            |                                |
+| Crypto-Loyalty               | CL            |                                |
+| Crypto-Wallet                | CW            |                                |
+| Digital ID - Korlantas       | KOR           |                                |
+| Digital-Imigrasi             | digital_imigrasi |                              |
+| Digital-Kemenag              | KMG           |                                |
+| Digital NU                   | DNU           |                                |
+| General                      | GEN           |                                |
+| INISA                        | inisa         |                                |
+| INISA-Venturo                | NTV           |                                |
+| Korlantas - Signal           | SIG           |                                |
+| Korlantas - Sim Online       | SIM           |                                |
+| LazisNU                      | ZNU           | LazisNU                        |
+| mini-Qoin                    | MQN           | mini qoin                      |
+| mini-Qoin-Sdk                | MQS           | Sdk for flutter                |
+| Mobile - Korlantas           | MOK           |                                |
+| Mobile - QoinWallet          | MOQ           |                                |
+| Nero - Crypto                | NC            |                                |
+| NGen - Digid                 | ND            |                                |
+| NGen - Frontend Web          | NFW           |                                |
+| NGen - Loyalty               | NL            |                                |
+| NGen - Mobile App            | NMA           |                                |
+| NGen - Wallet                | NW            |                                |
+| NTT - Access                 | NTA           |                                |
+| NTT - Digid                  | NTD           |                                |
+| NTT - Front Web              | NTF           |                                |
+| NTT - Loyalty                | NTL           |                                |
+| NTT - Mobile                 | NTM           |                                |
+| NTT - Wallet                 | NTW           |                                |
+| Onboarding                   | ON            |                                |
+| ottersec                     | OT            | Audit                          |
+| PaySaaS                      | PAS           | Payout versi SaaS              |
+| QA                           | QA            |                                |
+| Qoinapp Services             | qoinapp_services |                             |
+| Qoinapps SaaS                | qoinapps_saas |                                |
+| Qoin_Crypto                  | qoin_crypto   |                                |
+| Qoin - Ewallet               | WAL           |                                |
+| Qoin - ID                    | DGID          |                                |
+| Qoin - Loyalty               | LOY           |                                |
+| Qoinpay                      | qoinpay       |                                |
+| Qoin - Payment Gateway       | PG            |                                |
+| Qoin Payout                  | PAY           |                                |
+| QOIN PG 2.0                  | qoin_pg_2_0   |                                |
+| QOIN PLUS                    | PLUS          | Payment Gateway 2.0 and Payout |
+| QOIN- SAAS                   | QSAAS         |                                |
+| Qoin Team                    | qoin_team     |                                |
+| Venturo-Health               | VHEALTH       |                                |
