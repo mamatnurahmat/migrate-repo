@@ -12,10 +12,12 @@ fi
 # --- Konfigurasi Log ---
 SUCCESS_LOG="migration_success.log"
 FAILED_LOG="migration_failed.log"
+FAILED_LIST_LOG="migration_failed_list.txt"
 
 # Mengosongkan file log jika sudah ada dari eksekusi sebelumnya
 > "$SUCCESS_LOG"
 > "$FAILED_LOG"
+> "$FAILED_LIST_LOG"
 
 # --- Fungsi ---
 function detect_os() {
@@ -80,8 +82,29 @@ function migrate_single_repo() {
 
     echo "Langkah 2: Memeriksa repositori di GitHub..."
     if ! gh repo view "${github_repo_owner}/${github_repo_name}" &> /dev/null; then
-        if ! gh repo create "${github_repo_owner}/${github_repo_name}" --private; then
-            echo "❌ Error: Gagal membuat repo GitHub."
+        echo "Repositori belum ada, mencoba membuat baru..."
+        
+        # Mekanisme Retry jika terkena limit API GitHub
+        local retry_count=0
+        local max_retries=3
+        local success=false
+
+        while [ $retry_count -lt $max_retries ]; do
+            if gh repo create "${github_repo_owner}/${github_repo_name}" --private; then
+                success=true
+                break
+            else
+                ((retry_count++))
+                echo "⚠️ Pembuatan repo gagal. Kemungkinan terkena limit GitHub."
+                if [ $retry_count -lt $max_retries ]; then
+                    echo "Menunggu 60 detik sebelum mencoba lagi (Percobaan $retry_count/$max_retries)..."
+                    sleep 60
+                fi
+            fi
+        done
+
+        if [ "$success" = false ]; then
+            echo "❌ Error: Gagal membuat repo GitHub setelah $max_retries percobaan."
             cd - > /dev/null && rm -rf "$temp_dir"; return 1
         fi
     fi
@@ -138,142 +161,24 @@ while IFS= read -r repo_name || [[ -n "$repo_name" ]]; do
         ((failed_count++))
         failed_repos+=("$repo_name")
         echo "[$timestamp] FAILED: $repo_name" >> "$FAILED_LOG"
+        echo "$repo_name" >> "$FAILED_LIST_LOG"
     fi
+
+    # Jeda standar antar repositori untuk menghindari rate limit sejak awal
+    echo "⏳ Menunggu 15 detik sebelum memproses repositori berikutnya..."
+    sleep 15
+
 done < "$REPO_FILE"
 
 echo "========================================"
 echo "RINGKASAN: Berhasil: $success_count, Gagal: $failed_count"
-echo "Log repositori yang berhasil disimpan di : $SUCCESS_LOG"
+echo "Log detail berhasil : $SUCCESS_LOG"
 if [ $failed_count -gt 0 ]; then
-    echo "Log repositori yang gagal disimpan di    : $FAILED_LOG"
+    echo "Log detail gagal    : $FAILED_LOG"
+    echo "Daftar repo gagal   : $FAILED_LIST_LOG (Gunakan file ini untuk retry)"
+    echo "----------------------------------------"
+    echo "Repositori yang gagal:"
+    for repo in "${failed_repos[@]}"; do
+        echo "  - $repo"
+    done
 fi
-
-# #!/bin/bash
-
-# # --- Load Environment Variables ---
-# ENV_FILE=".env"
-# if [ -f "$ENV_FILE" ]; then
-#     export $(grep -v '^#' "$ENV_FILE" | xargs)
-# else
-#     echo "Error: File $ENV_FILE tidak ditemukan."
-#     exit 1
-# fi
-
-# # --- Fungsi ---
-# function detect_os() {
-#     if [ -f /etc/redhat-release ]; then
-#         echo "centos"
-#     elif [ -f /etc/debian_version ]; then
-#         echo "debian"
-#     elif [ -f /etc/arch-release ] || grep -q "arch" /etc/os-release || grep -q "cachyos" /etc/os-release; then
-#         echo "arch"
-#     else
-#         echo "unknown"
-#     fi
-# }
-
-# function install_gh_cli() {
-#     local os_type=$(detect_os)
-#     echo "GitHub CLI tidak ditemukan. Mencoba menginstal..."
-#     case $os_type in
-#         "centos")
-#             if command -v dnf &> /dev/null; then sudo dnf install -y gh
-#             elif command -v yum &> /dev/null; then
-#                 sudo yum install -y https://cli.github.com/packages/rpm/gh-cli.repo
-#                 sudo yum install -y gh
-#             fi ;;
-#         "debian")
-#             curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-#             echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-#             sudo apt update && sudo apt install -y gh ;;
-#         "arch")
-#             sudo pacman -Sy --noconfirm github-cli ;;
-#         *) echo "Error: Sistem tidak didukung untuk instalasi otomatis."; exit 1 ;;
-#     esac
-# }
-
-# function check_command() {
-#     if ! command -v "$1" &> /dev/null; then
-#         if [ "$1" = "gh" ]; then install_gh_cli
-#         else echo "Error: '$1' tidak ditemukan."; exit 1; fi
-#     fi
-# }
-
-# function migrate_single_repo() {
-#     local repo_name="$1"
-#     local bitbucket_repo_slug="${BITBUCKET_ORG}/${repo_name}"
-#     local github_repo_owner="${GITHUB_ORG}"
-#     local github_repo_name="${repo_name}"
-#     local github_url="https://github.com/${github_repo_owner}/${github_repo_name}"
-
-#     echo "----------------------------------------"
-#     echo "Memigrasi repositori: $repo_name"
-    
-#     local temp_dir=$(mktemp -d)
-#     cd "$temp_dir" || return 1
-
-#     echo "Langkah 1: Mengklon repositori Bitbucket..."
-#     if ! git clone --mirror "https://bitbucket.org/${bitbucket_repo_slug}.git"; then
-#         echo "❌ Error: Gagal mengklon Bitbucket."
-#         cd - > /dev/null && rm -rf "$temp_dir"; return 1
-#     fi
-
-#     cd "${repo_name}.git" || { cd - > /dev/null; rm -rf "$temp_dir"; return 1; }
-
-#     echo "Langkah 2: Memeriksa repositori di GitHub..."
-#     if ! gh repo view "${github_repo_owner}/${github_repo_name}" &> /dev/null; then
-#         if ! gh repo create "${github_repo_owner}/${github_repo_name}" --private; then
-#             echo "❌ Error: Gagal membuat repo GitHub."
-#             cd - > /dev/null && rm -rf "$temp_dir"; return 1
-#         fi
-#     fi
-    
-#     git remote set-url origin "$github_url"
-
-#     echo "Langkah 3: Push konten ke GitHub..."
-#     if ! git push --mirror; then
-#         echo "❌ Error: Gagal push ke GitHub."
-#         cd - > /dev/null && rm -rf "$temp_dir"; return 1
-#     fi
-
-#     cd - > /dev/null && rm -rf "$temp_dir"
-#     echo "✅ Migrasi '${repo_name}' berhasil!"
-#     return 0
-# }
-
-# # --- Persiapan ---
-# check_command "git"
-# check_command "gh"
-
-# if ! gh auth status &> /dev/null; then
-#     echo "Silakan jalankan 'gh auth login' terlebih dahulu."
-#     exit 1
-# fi
-
-# if [ ! -f "$REPO_FILE" ]; then
-#     echo "Error: File $REPO_FILE tidak ditemukan."
-#     exit 1
-# fi
-
-# if ! gh api "users/${GITHUB_ORG}" &> /dev/null; then
-#     echo "Error: Tidak dapat mengakses '${GITHUB_ORG}'."
-#     exit 1
-# fi
-
-# # --- Logika Utama ---
-# echo "Memulai migrasi ke: ${GITHUB_ORG}"
-
-# success_count=0
-# failed_count=0
-# failed_repos=()
-
-# while IFS= read -r repo_name || [[ -n "$repo_name" ]]; do
-#     if [ -z "$repo_name" ] || [[ "$repo_name" =~ ^[[:space:]]*# ]]; then continue; fi
-#     repo_name=$(echo "$repo_name" | xargs)
-
-#     if migrate_single_repo "$repo_name"; then ((success_count++))
-#     else ((failed_count++)); failed_repos+=("$repo_name"); fi
-# done < "$REPO_FILE"
-
-# echo "========================================"
-# echo "RINGKASAN: Berhasil: $success_count, Gagal: $failed_count"

@@ -1,0 +1,16 @@
+cryploy-be-membership-manager
+cryploy-be-qoinmember-module
+cryploy-be-qoinmemberid-module
+cryploy-be-qoinmemberattr-module
+cryploy-be-rewardprocessor-module
+cryploy-be-merchantproduct-module
+cryploy-be-merchant-module
+cryploy-be-merchant-manager
+cryploy-be-merchantlevel-module
+cryploy-be-merchantid-module
+cryploy-be-merchantattr-module
+cryploy-be-merchantaddress-module
+cryploy-be-merchantactive-module
+project-cryploy
+cryploy-be-promo-manager
+cryploy-be-promo-module

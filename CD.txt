@@ -1,0 +1,9 @@
+crypdigid-be-document-manager
+crypdigid-be-document-module
+crypdigid-be-documentpush-manager
+project-crypdigid
+crypto-qa-digitid-document-manager
+crypdigid-be-otaqu-manager
+crypdigid-be-masterdataloc-manager
+crypdigid-be-masterdataloc-module
+crypwal-be-reverseproxy-manager

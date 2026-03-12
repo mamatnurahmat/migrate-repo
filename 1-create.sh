@@ -12,6 +12,11 @@ else
     exit 1
 fi
 
+# --- Konfigurasi Log ---
+FAILED_LOG="failed_repo_creation.log"
+# Mengosongkan log dari eksekusi sebelumnya
+> "$FAILED_LOG"
+
 # --- Fungsi Utilitas ---
 function detect_os() {
     if [ -f /etc/redhat-release ]; then
@@ -151,6 +156,8 @@ echo "Memulai proses dengan tujuan: ${GITHUB_ORG}"
 echo "File repositori: ${REPO_FILE}"
 echo ""
 
+failed_count=0
+
 while IFS= read -r repo_name || [[ -n "$repo_name" ]]; do
     if [ -z "$repo_name" ] || [[ "$repo_name" =~ ^[[:space:]]*# ]]; then
         continue
@@ -158,6 +165,7 @@ while IFS= read -r repo_name || [[ -n "$repo_name" ]]; do
     
     repo_name=$(echo "$repo_name" | xargs)
     full_repo_path="${GITHUB_ORG}/${repo_name}"
+    timestamp=$(date "+%Y-%m-%d %H:%M:%S")
 
     echo "----------------------------------------"
     echo "Memproses repositori: $full_repo_path"
@@ -171,6 +179,8 @@ while IFS= read -r repo_name || [[ -n "$repo_name" ]]; do
             echo "✅ Berhasil membuat repositori private '$full_repo_path'."
         else
             echo "❌ Gagal membuat repositori '$full_repo_path'."
+            echo "[$timestamp] GAGAL CREATE: $full_repo_path" >> "$FAILED_LOG"
+            ((failed_count++))
         fi
     else
         if [ "$visibility" = "PUBLIC" ]; then
@@ -179,12 +189,23 @@ while IFS= read -r repo_name || [[ -n "$repo_name" ]]; do
                 echo "✅ Berhasil mengubah repositori '$full_repo_path' menjadi private."
             else
                 echo "❌ Gagal mengubah visibilitas repositori '$full_repo_path'."
+                echo "[$timestamp] GAGAL EDIT VISIBILITY: $full_repo_path" >> "$FAILED_LOG"
+                ((failed_count++))
             fi
         elif [ "$visibility" = "PRIVATE" ]; then
             echo "✅ Repositori '$full_repo_path' sudah private. Tidak ada tindakan."
         fi
     fi
+
+    # Jeda 10 detik untuk mencegah terkena limit GraphQL API GitHub (Secondary Rate Limit)
+    echo "⏳ Menunggu 5 detik sebelum memproses repositori berikutnya..."
+    sleep 5
+
 done < "$REPO_FILE"
 
 echo "----------------------------------------"
 echo "✅ Selesai memproses semua repositori."
+if [ $failed_count -gt 0 ]; then
+    echo "⚠️ Terdapat $failed_count repositori yang gagal diproses."
+    echo "Cek file log untuk detailnya: $FAILED_LOG"
+fi
